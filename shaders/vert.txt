@@ -1,0 +1,19 @@
+#version 120
+
+uniform mat4 mvp;
+
+attribute vec3 position;
+attribute vec3 normal;
+attribute vec3 color;
+
+varying vec3 fposition;
+varying vec3 fnormal;
+varying vec3 fcolor;
+
+void main()
+{
+	fposition = position;
+	fnormal = normal;
+	fcolor = color;
+	gl_Position = mvp * vec4(position, 1.0);
+}
