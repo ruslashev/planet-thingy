@@ -16,8 +16,9 @@
 struct vertex
 {
 	glm::vec3 position;
+	glm::vec3 normal;
 	glm::vec3 color;
-	vertex(glm::vec3 position, glm::vec3 color) : position(position), color(color) {};
+	vertex(glm::vec3 position, glm::vec3 normal, glm::vec3 color) : position(position), normal(normal), color(color) {};
 };
 
 struct triangle
@@ -25,9 +26,8 @@ struct triangle
 	vertex v1;
 	vertex v2;
 	vertex v3;
-	glm::vec3 normal;
 	bool touched;
-	triangle(vertex v1, vertex v2, vertex v3, glm::vec3 normal, bool touched) : v1(v1), v2(v2), v3(v3), normal(normal), touched(touched) {};
+	triangle(vertex v1, vertex v2, vertex v3, bool touched) : v1(v1), v2(v2), v3(v3), touched(touched) {};
 };
 
 GLuint vbo, vao, ibo, vertexShader, fragmentShader, shaderProgram;

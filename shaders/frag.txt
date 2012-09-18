@@ -1,10 +1,12 @@
 #version 120
 
-varying vec3 fposition;
-varying vec3 fnormal;
-varying vec3 fcolor;
+varying vec3 position;
+varying vec3 normal;
+varying vec3 color;
 
 void main()
 {
-	gl_FragColor = vec4(vec3(fnormal*0.5+0.5), 1.0);
+	float col = (sin(distance(vec3(0.), position)*50.)+1.)/2.;
+	
+	gl_FragColor = vec4(vec3(col), 1.0);
 }

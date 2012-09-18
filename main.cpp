@@ -2,7 +2,6 @@
 
 using namespace std;
 
-int width = 16, height = 16, depth = 16;
 vector<vertex> vertices;
 vector<triangle> triangles;
 //vector<GLuint> indices;
@@ -18,8 +17,7 @@ int main()
 	glm::mat4 mvp;
 	GLint mvpUniform = glGetUniformLocation(shaderProgram, "mvp");
 	
-	GLenum drawMode = GL_QUADS;
-	int drawModei = 1;
+	GLenum drawMode = GL_POINTS;
 	
 	while (glfwGetWindowParam(GLFW_OPENED) && !glfwGetKey(GLFW_KEY_ESC))
 	{
@@ -29,31 +27,16 @@ int main()
 			glfwGetMousePos(&x, &y);
 			if (glfwGetMouseButton(GLFW_MOUSE_BUTTON_LEFT))  { rotx += y - msy; roty += x - msx; }
 			if (glfwGetMouseButton(GLFW_MOUSE_BUTTON_RIGHT)) { rotz += x - msx; rotz += y - msy; }
-			glfwGetKey('1') ? drawModei = 1 : (glfwGetKey('2') ? drawModei = 2 : (glfwGetKey('3') ? drawModei = 3 : 0));
-			switch (drawModei)\
-			{
-				case 1:
-					drawMode = GL_POINTS;
-					glfwSetWindowTitle("Planet thingy; GL_POINTS");
-					break;
-				case 2:
-					drawMode = GL_LINES;
-					glfwSetWindowTitle("Planet thingy; GL_LINES");
-					break;
-				case 3:
-					drawMode = GL_TRIANGLES;
-					glfwSetWindowTitle("Planet thingy; GL_TRIANGLES");
-					break;
-			}
+			glfwGetKey('1') ? drawMode = GL_POINTS : (glfwGetKey('2') ? drawMode = GL_LINES : (glfwGetKey('3') ? drawMode = GL_TRIANGLES : 0));
 			
 			msx = x; msy = y;
 			
-			model = glm::rotate(glm::mat4(1.f), rotx, glm::vec3(1, 0, 0));
-			model = glm::rotate(model, 			roty, glm::vec3(0, 0, 1));
-			model = glm::rotate(model, 			rotz, glm::vec3(0, 1, 0));
-			model = glm::translate(model, glm::vec3(0, 0, 0)/*glm::vec3(-width/2.f, -height/2.f, -depth/2.f)*/);
+			model = glm::rotate(glm::mat4(1), rotx, glm::vec3(1, 0, 0));
+			model = glm::rotate(model,        roty, glm::vec3(0, 0, 1));
+			model = glm::rotate(model,        rotz, glm::vec3(0, 1, 0));
+			model = glm::translate(model, glm::vec3(0));
 			
-			glm::mat4 view = glm::lookAt(glm::vec3(0, 0, 5-glfwGetMouseWheel()), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+			glm::mat4 view = glm::lookAt(glm::vec3(0, 0, 5-glfwGetMouseWheel()), glm::vec3(0), glm::vec3(0, 1, 0));
 			
 			mvp = projection * view * model;
 			glUniformMatrix4fv(mvpUniform, 1, GL_FALSE, glm::value_ptr(mvp));
@@ -62,7 +45,6 @@ int main()
 		glClearColor(0.1f, 0.1f, 0.1f, 1.f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glDrawArrays(drawMode, 0, vertices.size());
-		//glDrawElements(drawMode, indices.size(), GL_UNSIGNED_INT, 0);
 		glfwSwapBuffers();
 	}
 	
@@ -78,14 +60,14 @@ void makePlanet(unsigned char iterations)
 	triangles.reserve(pow(4, iterations+1));
 	
 	const float M_1_SQRT2 = 1.f/M_SQRT2;
-	triangles.push_back(triangle(vertex(glm::vec3(0,  M_1_SQRT2, 0), w), vertex(glm::vec3(-0.5, 0,  0.5), w), vertex(glm::vec3( 0.5, 0,  0.5), w), n, false));
-	triangles.push_back(triangle(vertex(glm::vec3(0,  M_1_SQRT2, 0), w), vertex(glm::vec3( 0.5, 0,  0.5), w), vertex(glm::vec3( 0.5, 0, -0.5), w), n, false));
-	triangles.push_back(triangle(vertex(glm::vec3(0,  M_1_SQRT2, 0), w), vertex(glm::vec3( 0.5, 0, -0.5), w), vertex(glm::vec3(-0.5, 0, -0.5), w), n, false));
-	triangles.push_back(triangle(vertex(glm::vec3(0,  M_1_SQRT2, 0), w), vertex(glm::vec3(-0.5, 0, -0.5), w), vertex(glm::vec3(-0.5, 0,  0.5), w), n, false));
-	triangles.push_back(triangle(vertex(glm::vec3(0, -M_1_SQRT2, 0), w), vertex(glm::vec3(-0.5, 0,  0.5), w), vertex(glm::vec3( 0.5, 0,  0.5), w), n, false));
-	triangles.push_back(triangle(vertex(glm::vec3(0, -M_1_SQRT2, 0), w), vertex(glm::vec3( 0.5, 0,  0.5), w), vertex(glm::vec3( 0.5, 0, -0.5), w), n, false));
-	triangles.push_back(triangle(vertex(glm::vec3(0, -M_1_SQRT2, 0), w), vertex(glm::vec3( 0.5, 0, -0.5), w), vertex(glm::vec3(-0.5, 0, -0.5), w), n, false));
-	triangles.push_back(triangle(vertex(glm::vec3(0, -M_1_SQRT2, 0), w), vertex(glm::vec3(-0.5, 0, -0.5), w), vertex(glm::vec3(-0.5, 0,  0.5), w), n, false));
+	triangles.push_back(triangle(vertex(glm::vec3(0,  M_1_SQRT2, 0), n, w), vertex(glm::vec3(-0.5, 0,  0.5), n, w), vertex(glm::vec3( 0.5, 0,  0.5), n, w), false));
+	triangles.push_back(triangle(vertex(glm::vec3(0,  M_1_SQRT2, 0), n, w), vertex(glm::vec3( 0.5, 0,  0.5), n, w), vertex(glm::vec3( 0.5, 0, -0.5), n, w), false));
+	triangles.push_back(triangle(vertex(glm::vec3(0,  M_1_SQRT2, 0), n, w), vertex(glm::vec3( 0.5, 0, -0.5), n, w), vertex(glm::vec3(-0.5, 0, -0.5), n, w), false));
+	triangles.push_back(triangle(vertex(glm::vec3(0,  M_1_SQRT2, 0), n, w), vertex(glm::vec3(-0.5, 0, -0.5), n, w), vertex(glm::vec3(-0.5, 0,  0.5), n, w), false));
+	triangles.push_back(triangle(vertex(glm::vec3(0, -M_1_SQRT2, 0), n, w), vertex(glm::vec3(-0.5, 0,  0.5), n, w), vertex(glm::vec3( 0.5, 0,  0.5), n, w), false));
+	triangles.push_back(triangle(vertex(glm::vec3(0, -M_1_SQRT2, 0), n, w), vertex(glm::vec3( 0.5, 0,  0.5), n, w), vertex(glm::vec3( 0.5, 0, -0.5), n, w), false));
+	triangles.push_back(triangle(vertex(glm::vec3(0, -M_1_SQRT2, 0), n, w), vertex(glm::vec3( 0.5, 0, -0.5), n, w), vertex(glm::vec3(-0.5, 0, -0.5), n, w), false));
+	triangles.push_back(triangle(vertex(glm::vec3(0, -M_1_SQRT2, 0), n, w), vertex(glm::vec3(-0.5, 0, -0.5), n, w), vertex(glm::vec3(-0.5, 0,  0.5), n, w), false));
 	
 	for (int it = 0; it < iterations; it++)
 	{
@@ -104,10 +86,10 @@ void makePlanet(unsigned char iterations)
 			triangles.at(i).v2.position = glm::normalize(triangles.at(i).v2.position);
 			triangles.at(i).v3.position = glm::normalize(triangles.at(i).v3.position);
 			
-			triangles.push_back(triangle(vertex(triangles.at(i).v1.position, w), vertex(pos1, w), vertex(pos3, w), true));
-			triangles.push_back(triangle(vertex(pos1, w), vertex(triangles.at(i).v2.position, w), vertex(pos2, w), true));
-			triangles.push_back(triangle(vertex(pos3, w), vertex(pos2, w), vertex(triangles.at(i).v3.position, w), true));
-			triangles.at(i) = triangle(vertex(pos1, w), vertex(pos2, w), vertex(pos3, w), true);
+			triangles.push_back(triangle(vertex(triangles.at(i).v1.position, n, w), vertex(pos1,                        n, w), vertex(pos3,                        n, w), true));
+			triangles.push_back(triangle(vertex(pos1,                        n, w), vertex(triangles.at(i).v2.position, n, w), vertex(pos2,                        n, w), true));
+			triangles.push_back(triangle(vertex(pos3,                        n, w), vertex(pos2,                        n, w), vertex(triangles.at(i).v3.position, n, w), true));
+			triangles.at(i) =   triangle(vertex(pos1,                        n, w), vertex(pos2,                        n, w), vertex(pos3,                        n, w), true);
 		}
 		
 		for (unsigned int i = 0; i < triangles.size(); i++)
@@ -131,14 +113,6 @@ void makePlanet(unsigned char iterations)
 	glEnableVertexAttribArray(posAttrib);
 	glEnableVertexAttribArray(norAttrib);
 	glEnableVertexAttribArray(colAttrib);
-}
-
-glm::vec3 tn(triangle tri)
-{
-	glm::vec3 a = tri.v1.position;
-	glm::vec3 b = tri.v2.position;
-	glm::vec3 c = tri.v3.position;
-	return glm::normalize(glm::cross(c - a, b - a));
 }
 
 void initGL()
@@ -174,9 +148,9 @@ void initGL()
 	glLinkProgram(shaderProgram);
 	glUseProgram(shaderProgram);
 	
-	posAttrib = glGetAttribLocation(shaderProgram, "position");
-	colAttrib = glGetAttribLocation(shaderProgram, "color");
-	norAttrib = glGetAttribLocation(shaderProgram, "normal");
+	posAttrib = glGetAttribLocation(shaderProgram, "vposition");
+	colAttrib = glGetAttribLocation(shaderProgram, "vcolor");
+	norAttrib = glGetAttribLocation(shaderProgram, "vnormal");
 }
 
 void loadShader(GLenum type, GLuint& shader, const char* filename)
