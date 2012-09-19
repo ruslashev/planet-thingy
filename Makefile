@@ -1,14 +1,7 @@
-compiler_options = -Wall
-
+# for compiling on Windows make them something like -lglfw -lopengl32 -lglew32s
 libraries = -lglfw -lGL -lGLEW
-source_files = main.cpp
-
-exec_name = "planet thingies"
 
 default: all
 
 all:
-	g++ $(compiler_options) -o $(exec_name) $(source_files) $(libraries)
-
-clean:
-	-rm -f $(exec_name)
+	g++ -Wall -o "planet thingies" main.cpp $(libraries)
