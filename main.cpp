@@ -54,7 +54,7 @@ int main()
 
 void makePlanet(unsigned char iterations)
 {	
-	vertices.reserve(100);
+	vertices.reserve(pow(4, iterations+1)*3);
 	const glm::vec3 w = glm::vec3(1, 1, 1); // default color
 	const glm::vec3 n = glm::vec3(0, 1, 0); // default normal
 	triangles.reserve(pow(4, iterations+1));
@@ -74,22 +74,52 @@ void makePlanet(unsigned char iterations)
 		for (unsigned int i = 0; i < triangles.size(); i++)
 		{
 			if (triangles.at(i).touched) { continue; }
-			glm::vec3 pos1 = (triangles.at(i).v1.position + triangles.at(i).v2.position) / 2.f;
+			
+			/* rough presentation of what's going on:
+			 * 
+			 *                 v1
+			 *               O
+			 *              / \
+			 *             /   \
+			 *       pos3 o     o pos1       <---  triangles.at(i)
+			 *           /       \
+			 *          /         \
+			 *         O-----o-----O
+			 *     v3       pos2      v2
+			 * 
+			 */
+						
+			glm::vec3 pos1 = (triangles.at(i).v1.position + triangles.at(i).v2.position) / 2.f; // midpoints between vertices v1 v2 and v3
 			glm::vec3 pos2 = (triangles.at(i).v2.position + triangles.at(i).v3.position) / 2.f;
 			glm::vec3 pos3 = (triangles.at(i).v3.position + triangles.at(i).v1.position) / 2.f;
 			
-			pos1 = glm::normalize(pos1);
-			pos2 = glm::normalize(pos2);
-			pos3 = glm::normalize(pos3);
-			
-			triangles.at(i).v1.position = glm::normalize(triangles.at(i).v1.position);
+			triangles.at(i).v1.position = glm::normalize(triangles.at(i).v1.position); // Pushing outwards (making them all the have same distance from center/origin/(0,0,0)) vertices that are already here
 			triangles.at(i).v2.position = glm::normalize(triangles.at(i).v2.position);
 			triangles.at(i).v3.position = glm::normalize(triangles.at(i).v3.position);
+			
+			pos1 = glm::normalize(pos1); // same thing for new vertices
+			pos2 = glm::normalize(pos2);
+			pos3 = glm::normalize(pos3);
 			
 			triangles.push_back(triangle(vertex(triangles.at(i).v1.position, n, w), vertex(pos1,                        n, w), vertex(pos3,                        n, w), true));
 			triangles.push_back(triangle(vertex(pos1,                        n, w), vertex(triangles.at(i).v2.position, n, w), vertex(pos2,                        n, w), true));
 			triangles.push_back(triangle(vertex(pos3,                        n, w), vertex(pos2,                        n, w), vertex(triangles.at(i).v3.position, n, w), true));
-			triangles.at(i) =   triangle(vertex(pos1,                        n, w), vertex(pos2,                        n, w), vertex(pos3,                        n, w), true);
+			triangles.at(i) =   triangle(vertex(pos1,                        n, w), vertex(pos2,                        n, w), vertex(pos3,                        n, w), true); // marking current big triangle as touched
+			
+			/* and in the end we have:
+			 * 
+			 *     v1
+			 *        O---__
+			 *        \      -
+			 *         \     _--o pos1
+			 *          | _--   \-
+			 *     pos3  o_     | -
+			 *          |  \__  /  -
+			 *          |     \/   -
+			 *         /  __--o---O  v2
+			 *      v3 O--   
+			 *                 pos2
+			 */
 		}
 		
 		for (unsigned int i = 0; i < triangles.size(); i++)
