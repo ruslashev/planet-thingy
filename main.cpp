@@ -1,4 +1,4 @@
-#include "main.h"
+#include "main.hpp"
 
 using namespace std;
 
@@ -6,20 +6,25 @@ vector<vertex> vertices;
 vector<triangle> triangles;
 //vector<GLuint> indices;
 
+/* todo:
+ * [ ] Fix nipples on 0-coordinates (e.g. (0,1,0), (1,0,0))
+ * [ ] Indices
+ */
+
 int main()
 {
 	srand(time(NULL));
 	initGL();
-	makePlanet(4);
+	makePlanet(7);
 	
 	glm::mat4 model;
-	glm::mat4 projection = glm::perspective(60.0f, 800.0f / 600.0f, 1.0f, 100.0f);
-	glm::mat4 mvp;
+	glm::mat4 projection = glm::perspective(60.f, 800.f / 600.f, 1.f, 100.f);
 	GLint mvpUniform = glGetUniformLocation(shaderProgram, "mvp");
 	
-	GLenum drawMode = GL_POINTS;
+	GLenum drawMode = GL_TRIANGLES;
 	
-	while (glfwGetWindowParam(GLFW_OPENED) && !glfwGetKey(GLFW_KEY_ESC))
+	// tl;dr: Exit if escape or ctrl+c or ctrl+w are pressed
+	while (glfwGetWindowParam(GLFW_OPENED) && !glfwGetKey(GLFW_KEY_ESC) && !((glfwGetKey(GLFW_KEY_LCTRL) || glfwGetKey(GLFW_KEY_RCTRL)) && (glfwGetKey('C') || glfwGetKey('W'))))
 	{
 		// update
 		{
@@ -34,22 +39,32 @@ int main()
 			model = glm::rotate(glm::mat4(1), rotx, glm::vec3(1, 0, 0));
 			model = glm::rotate(model,        roty, glm::vec3(0, 0, 1));
 			model = glm::rotate(model,        rotz, glm::vec3(0, 1, 0));
-			model = glm::translate(model, glm::vec3(0));
+			//model = glm::translate(model, glm::vec3(0));
 			
 			glm::mat4 view = glm::lookAt(glm::vec3(0, 0, 5-glfwGetMouseWheel()), glm::vec3(0), glm::vec3(0, 1, 0));
 			
-			mvp = projection * view * model;
+			glm::mat4 mvp = projection * view * model;
 			glUniformMatrix4fv(mvpUniform, 1, GL_FALSE, glm::value_ptr(mvp));
 		}
 		
 		glClearColor(0.1f, 0.1f, 0.1f, 1.f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glUseProgram(shaderProgram);
+		glBindVertexArray(vao);
 		glDrawArrays(drawMode, 0, vertices.size());
+		
 		glfwSwapBuffers();
 	}
 	
 	cleanup();
 	return 0;
+}
+
+double cerp(double a, double b, double t)
+{
+	double t2;
+	t2 = (1 - cos(t*M_PI)) / 2;
+	return(a*(1-t2) + b*t2);
 }
 
 void makePlanet(unsigned char iterations)
@@ -93,7 +108,7 @@ void makePlanet(unsigned char iterations)
 			glm::vec3 pos2 = (triangles.at(i).v2.position + triangles.at(i).v3.position) / 2.f;
 			glm::vec3 pos3 = (triangles.at(i).v3.position + triangles.at(i).v1.position) / 2.f;
 			
-			triangles.at(i).v1.position = glm::normalize(triangles.at(i).v1.position); // Pushing outwards (making them all the have same distance from center/origin/(0,0,0)) vertices that are already here
+			triangles.at(i).v1.position = glm::normalize(triangles.at(i).v1.position); // Pushing outwards (making them all the have same distance from center (0,0,0)) vertices that are already here
 			triangles.at(i).v2.position = glm::normalize(triangles.at(i).v2.position);
 			triangles.at(i).v3.position = glm::normalize(triangles.at(i).v3.position);
 			
@@ -116,16 +131,14 @@ void makePlanet(unsigned char iterations)
 			 *     pos3  o_     | -
 			 *          |  \__  /  -
 			 *          |     \/   -
-			 *         /  __--o---O  v2
+			 *         /  __--o----O  v2
 			 *      v3 O--   
 			 *                 pos2
 			 */
 		}
 		
 		for (unsigned int i = 0; i < triangles.size(); i++)
-		{
-			triangles.at(i).touched = false;
-		}
+		{ triangles.at(i).touched = false; }
 	}
 	
 	for (unsigned int i = 0; i < triangles.size(); i++)
@@ -133,50 +146,51 @@ void makePlanet(unsigned char iterations)
 		vertices.push_back(triangles.at(i).v1);
 		vertices.push_back(triangles.at(i).v2);
 		vertices.push_back(triangles.at(i).v3);
-	}	
+	}
+	
+	for (unsigned int i = 0; i < vertices.size(); i++)
+	{
+		vertices.at(i).position *= cerp(0.9, 1.0, -glm::simplex(vertices.at(i).position*1.f));
+		//cout << glm::length(vertices.at(i).position) << endl;
+	}
 	
 	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(vertex), vertices.data(), GL_STATIC_DRAW);
-	//glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), indices.data(), GL_STATIC_DRAW);
-	glVertexAttribPointer(posAttrib, 3, GL_FLOAT, GL_FALSE, sizeof(vertex), 0);
-	glVertexAttribPointer(norAttrib, 3, GL_FLOAT, GL_FALSE, sizeof(vertex), (void*)(1*sizeof(glm::vec3)));
-	glVertexAttribPointer(colAttrib, 3, GL_FLOAT, GL_FALSE, sizeof(vertex), (void*)(2*sizeof(glm::vec3)));
 	glEnableVertexAttribArray(posAttrib);
+	glVertexAttribPointer(posAttrib, 3, GL_FLOAT, GL_FALSE, sizeof(vertex), 0);
 	glEnableVertexAttribArray(norAttrib);
+	glVertexAttribPointer(norAttrib, 3, GL_FLOAT, GL_FALSE, sizeof(vertex), (void*)(1*sizeof(glm::vec3)));
 	glEnableVertexAttribArray(colAttrib);
+	glVertexAttribPointer(colAttrib, 3, GL_FLOAT, GL_FALSE, sizeof(vertex), (void*)(2*sizeof(glm::vec3)));
 }
 
 void initGL()
 {
-	if (glfwInit() == GL_FALSE) { cerr << "GLFW didn't initialize\n"; cleanup(); exit(1); }
-	glfwOpenWindowHint(GLFW_OPENGL_VERSION_MINOR, 2); glfwOpenWindowHint(GLFW_OPENGL_VERSION_MAJOR, 1);
-	glfwOpenWindowHint(GLFW_WINDOW_NO_RESIZE, GL_TRUE);
+	if (glfwInit() == GL_FALSE) { cerr << "GLFW failed to initialize\n"; cleanup(); exit(1); }
+	glfwOpenWindowHint(GLFW_OPENGL_VERSION_MAJOR, 2); glfwOpenWindowHint(GLFW_OPENGL_VERSION_MINOR, 1); glfwOpenWindowHint(GLFW_WINDOW_NO_RESIZE, GL_TRUE);
 	//glfwOpenWindowHint(GLFW_FSAA_SAMPLES, 4);
-	glfwOpenWindow(800, 600, 0, 0, 0, 0, 24, 0, GLFW_WINDOW);
+	if (glfwOpenWindow(800, 600, 0, 0, 0, 0, 24, 8, GLFW_WINDOW) == GL_FALSE) { cerr << "Failed to open window\n"; cleanup(); exit(1); }
 	glfwSetWindowTitle("Planet thingy");
 	
-	if (glewInit() != GLEW_OK) { cerr << "GLEW didn't initialize\n"; cleanup(); exit(1); }
+	GLenum glewInitStatus = glewInit();
+	if (glewInitStatus != GLEW_OK) { cerr << "GLEW failed to initialize: " << glewGetErrorString(glewInitStatus) << endl; cleanup(); exit(1); }
 	
 	glViewport(0, 0, 800, 600);
 	glEnable(GL_DEPTH_TEST);
 	//glFrontFace(GL_CW);
 	//glEnable(GL_CULL_FACE);
-	glPointSize(3.f);
+	glPointSize(4.f);
 	
-	glGenVertexArrays(1, &vao);
-	glBindVertexArray(vao);
-	
-	glGenBuffers(1, &vbo);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	//glGenBuffers(1, &ibo);
-	//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
-	
-	loadShader(GL_VERTEX_SHADER, vertexShader, "shaders/vert.txt");
-	loadShader(GL_FRAGMENT_SHADER, fragmentShader, "shaders/frag.txt");
+	loadShader(GL_VERTEX_SHADER, vertexShader, "shaders/vert.glsl");
+	loadShader(GL_FRAGMENT_SHADER, fragmentShader, "shaders/frag.glsl");
 	shaderProgram = glCreateProgram();
 	glAttachShader(shaderProgram, vertexShader);
 	glAttachShader(shaderProgram, fragmentShader);
 	glLinkProgram(shaderProgram);
-	glUseProgram(shaderProgram);
+		
+	glGenVertexArrays(1, &vao);
+	glBindVertexArray(vao);
+	glGenBuffers(1, &vbo);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo);
 	
 	posAttrib = glGetAttribLocation(shaderProgram, "vposition");
 	colAttrib = glGetAttribLocation(shaderProgram, "vcolor");

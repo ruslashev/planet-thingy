@@ -42,12 +42,14 @@ void loadShader(GLenum type, GLuint& shader, const char* filename);
 
 void cleanup()
 {
-	glDeleteProgram(shaderProgram);
-	glDeleteShader(fragmentShader);
-	glDeleteShader(vertexShader);
 	glDeleteBuffers(1, &vbo);
-	//glDeleteBuffers(1, &ibo);
 	glDeleteVertexArrays(1, &vao);
+	glDetachShader(shaderProgram, vertexShader);	
+    glDetachShader(shaderProgram, fragmentShader);
+	glDeleteProgram(shaderProgram);
+	glDeleteShader(vertexShader);
+	glDeleteShader(fragmentShader);
 	
+	glfwCloseWindow();
 	glfwTerminate();
 }
