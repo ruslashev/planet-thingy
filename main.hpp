@@ -45,7 +45,7 @@ void cleanup()
 	glDeleteBuffers(1, &vbo);
 	glDeleteVertexArrays(1, &vao);
 	glDetachShader(shaderProgram, vertexShader);	
-    glDetachShader(shaderProgram, fragmentShader);
+	glDetachShader(shaderProgram, fragmentShader);
 	glDeleteProgram(shaderProgram);
 	glDeleteShader(vertexShader);
 	glDeleteShader(fragmentShader);

@@ -15,7 +15,7 @@ int main()
 {
 	srand(time(NULL));
 	initGL();
-	makePlanet(7);
+	makePlanet(5);
 	
 	glm::mat4 model;
 	glm::mat4 projection = glm::perspective(60.f, 800.f / 600.f, 1.f, 100.f);
@@ -41,7 +41,7 @@ int main()
 			model = glm::rotate(model,        rotz, glm::vec3(0, 1, 0));
 			//model = glm::translate(model, glm::vec3(0));
 			
-			glm::mat4 view = glm::lookAt(glm::vec3(0, 0, 5-glfwGetMouseWheel()), glm::vec3(0), glm::vec3(0, 1, 0));
+			glm::mat4 view = glm::lookAt(glm::vec3(0, 0, 5.5-glfwGetMouseWheel()), glm::vec3(0), glm::vec3(0, 1, 0));
 			
 			glm::mat4 mvp = projection * view * model;
 			glUniformMatrix4fv(mvpUniform, 1, GL_FALSE, glm::value_ptr(mvp));
@@ -65,6 +65,12 @@ double cerp(double a, double b, double t)
 	double t2;
 	t2 = (1 - cos(t*M_PI)) / 2;
 	return(a*(1-t2) + b*t2);
+}
+
+double expOut(double a, double b, double tim)
+{
+	float t = 1 - tim;
+	return a + (b - a) * t * t;
 }
 
 void makePlanet(unsigned char iterations)
@@ -150,8 +156,7 @@ void makePlanet(unsigned char iterations)
 	
 	for (unsigned int i = 0; i < vertices.size(); i++)
 	{
-		vertices.at(i).position *= cerp(0.9, 1.0, -glm::simplex(vertices.at(i).position*1.f));
-		//cout << glm::length(vertices.at(i).position) << endl;
+		vertices.at(i).position *= expOut(0.95, 1., -glm::simplex(vertices.at(i).position*5.f));
 	}
 	
 	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(vertex), vertices.data(), GL_STATIC_DRAW);
@@ -167,7 +172,7 @@ void initGL()
 {
 	if (glfwInit() == GL_FALSE) { cerr << "GLFW failed to initialize\n"; cleanup(); exit(1); }
 	glfwOpenWindowHint(GLFW_OPENGL_VERSION_MAJOR, 2); glfwOpenWindowHint(GLFW_OPENGL_VERSION_MINOR, 1); glfwOpenWindowHint(GLFW_WINDOW_NO_RESIZE, GL_TRUE);
-	//glfwOpenWindowHint(GLFW_FSAA_SAMPLES, 4);
+	//glfwOpenWindowHint(GLFW_FSAA_SAMPLES, 16);
 	if (glfwOpenWindow(800, 600, 0, 0, 0, 0, 24, 8, GLFW_WINDOW) == GL_FALSE) { cerr << "Failed to open window\n"; cleanup(); exit(1); }
 	glfwSetWindowTitle("Planet thingy");
 	
