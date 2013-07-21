@@ -1,7 +1,17 @@
-# for compiling on Windows make them something like -lglfw -lopengl32 -lglew32s
-libraries = -lglfw -lGL -lGLEW
+CXX = g++
+OBJS = $(patsubst src/%.cpp, objs/%.o, $(shell find src -type f -name "*.cpp" ))
+EXECNAME = planet
+LIBS = -lglfw
 
-default: all
+all: $(EXECNAME)
+	./$(EXECNAME)
 
-all:
-	g++ -Wall -o "planet thingies" main.cpp $(libraries)
+objs/%.o: src/%.cpp
+	$(CXX) -c -o $@ $< -Wall -g3 -Og -std=c++0x
+
+$(EXECNAME): $(OBJS)
+	$(CXX) -o $@ $^ $(LDFLAGS) $(LIBS)
+
+clean:
+	-rm -f objs/*.o $(EXECNAME)
+

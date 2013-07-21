@@ -1,4 +1,4 @@
-Planet thingy
-=============
+# Planet thingy
 
-An attempt to make a cool sphere out of equal triangles
+Magnificent and astonishing planet thing.
+
