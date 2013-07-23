@@ -86,7 +86,7 @@ void main()
 	float n = abs(snoise(position));
 	n += 0.5 * abs(snoise(position * 2.0));
 	n += 0.25 * abs(snoise(position * 4.0));
-    n += 0.125 * abs(snoise(position * 8.0));
-    
+	n += 0.125 * abs(snoise(position * 8.0));
+
 	gl_FragColor = vec4(vec3(1.5-n, 1.0-n, 0.5-n), 1.0);
 }
