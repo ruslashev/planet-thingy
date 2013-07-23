@@ -5,27 +5,29 @@ Window::Window(int newWidth, int newHeight, const char *title)
 	if (!glfwInit())
 		fatal(1, "Failed to initialize GLFW\n");
 
-	glfwSetErrorCallback(ErrorCallback);
+	glfwSetErrorCallback(CallbackError);
+	glfwSetFramebufferSizeCallback(win, CallbackFBsizeChange);
 
-	glfwwin = glfwCreateWindow(newWidth, newHeight, title, NULL, NULL);
-	if (!glfwwin)
+	win = glfwCreateWindow(newWidth, newHeight, title, NULL, NULL);
+	if (!win)
 		fatal(1, "Failed to open window\n");
 
-	glfwMakeContextCurrent(glfwwin);
-	glfwSetFramebufferSizeCallback(glfwwin, FBsizeChangeCallback);
+	glfwMakeContextCurrent(win);
+	CallbackFBsizeChange(win, newWidth, newHeight);
 }
 
-void ErrorCallback(int errorCode, const char *description)
+void CallbackError(int errorCode, const char *description)
 {
-	fatal(1, "GLFW error %X: \"%s\"", errorCode, description);
+	fatal(1, "GLFW error %X: \"%s\"\n", errorCode, description);
 }
-void FBsizeChangeCallback(GLFWwindow *window, int width, int height)
+void CallbackFBsizeChange(GLFWwindow *window, int width, int height)
 {
+	printf("Changed viewport to %dx%d\n", width, height);
 	glViewport(0, 0, width, height);
 }
 
 Window::~Window()
 {
-	glfwDestroyWindow(glfwwin);
+	glfwDestroyWindow(win);
 	glfwTerminate();
 }

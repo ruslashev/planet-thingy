@@ -1,7 +1,7 @@
 CXX = g++
 OBJS = $(patsubst src/%.cpp, objs/%.o, $(shell find src -type f -name "*.cpp" ))
 EXECNAME = planet
-LIBS = -lglfw
+LIBS = -lglfw -lGL -lGLEW
 
 all: $(EXECNAME)
 	./$(EXECNAME)
