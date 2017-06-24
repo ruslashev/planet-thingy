@@ -93,7 +93,6 @@ static void initGL()
 	assertf(glfwInit() != GL_FALSE, "GLFW failed to initialize");
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
-	//glfwOpenWindowHint(GLFW_FSAA_SAMPLES, 16);
 	win = glfwCreateWindow(800, 600, "Planet thingy", nullptr, nullptr);
 	assertf(win, "Failed to open window");
 	glfwMakeContextCurrent(win);
@@ -104,9 +103,8 @@ static void initGL()
 
 	glViewport(0, 0, 800, 600);
 	glEnable(GL_DEPTH_TEST);
-	//glFrontFace(GL_CW);
-	//glEnable(GL_CULL_FACE);
-	glPointSize(4.f);
+	glEnable(GL_CULL_FACE);
+	glPointSize(2.f);
 	glClearColor(0.1f, 0.1f, 0.1f, 1.f);
 
 	loadShader(GL_VERTEX_SHADER, vertexShader, "shaders/vert.glsl");
@@ -156,10 +154,10 @@ void makePlanet(std::vector<glm::vec3> *vertices
 	m.triangles.emplace_back(0, 2, 3);
 	m.triangles.emplace_back(0, 3, 5);
 	m.triangles.emplace_back(0, 5, 4);
-	m.triangles.emplace_back(1, 4, 2);
-	m.triangles.emplace_back(1, 2, 3);
-	m.triangles.emplace_back(1, 3, 5);
-	m.triangles.emplace_back(1, 5, 4);
+	m.triangles.emplace_back(1, 2, 4);
+	m.triangles.emplace_back(1, 3, 2);
+	m.triangles.emplace_back(1, 5, 3);
+	m.triangles.emplace_back(1, 4, 5);
 
 	for (int it = 0; it < iterations; ++it)
 	{
@@ -188,7 +186,7 @@ void makePlanet(std::vector<glm::vec3> *vertices
 			new_model.vertices.push_back(n2);
 			new_model.vertices.push_back(n3);
 
-			// and their indices are remembered aswell as old ones
+			// and their indices are remembered as well as old ones
 			const element en1 = new_model.vertices.size() - 3
 				, en2 = new_model.vertices.size() - 2
 				, en3 = new_model.vertices.size() - 1
@@ -207,7 +205,11 @@ void makePlanet(std::vector<glm::vec3> *vertices
 	}
 
 	for (const glm::vec3 &v : m.vertices)
-		vertices->push_back(glm::normalize(v));
+	{
+		glm::vec3 nv = glm::normalize(v);
+		nv *= expOut(0.95, 1., -glm::simplex(nv * 5.f));
+		vertices->push_back(nv);
+	}
 
 	for (const triangle &t : m.triangles)
 	{
@@ -215,9 +217,6 @@ void makePlanet(std::vector<glm::vec3> *vertices
 		elements->push_back(t.v2);
 		elements->push_back(t.v3);
 	}
-
-	for (size_t i = 0; i < vertices->size(); ++i)
-		(*vertices)[i] *= expOut(0.95, 1., -glm::simplex((*vertices)[i] * 5.f));
 }
 
 int main()
@@ -228,10 +227,10 @@ int main()
 	std::vector<element> elements;
 	makePlanet(&vertices, &elements, 5);
 
-	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3)
+	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(vertices[0])
 			, vertices.data(), GL_STATIC_DRAW);
 
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, elements.size() * sizeof(element)
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, elements.size() * sizeof(elements[0])
 			, elements.data(), GL_STATIC_DRAW);
 
 	const glm::mat4 projection = glm::perspective(glm::radians(60.f)
@@ -273,7 +272,7 @@ int main()
 			model = glm::rotate(model, glm::radians(roty), glm::vec3(0, 0, 1));
 			model = glm::rotate(model, glm::radians(rotz), glm::vec3(0, 1, 0));
 
-			glm::mat4 view = glm::lookAt(glm::vec3(0, 0, 5.5f + zoom), glm::vec3(0)
+			glm::mat4 view = glm::lookAt(glm::vec3(0, 0, 5.f + zoom), glm::vec3(0)
 					, glm::vec3(0, 1, 0));
 
 			glUniformMatrix4fv(mvpUniform, 1, GL_FALSE
