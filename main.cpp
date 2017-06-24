@@ -2,8 +2,9 @@
 
 using namespace std;
 
-vector<vertex> vertices;
-vector<triangle> triangles;
+static GLFWwindow *win;
+static vector<vertex> vertices;
+static vector<triangle> triangles;
 //vector<GLuint> indices;
 
 /* todo:
@@ -23,16 +24,15 @@ int main()
 
 	GLenum drawMode = GL_TRIANGLES;
 
-	// tl;dr: Exit if escape or ctrl+c or ctrl+w are pressed
-	while (glfwGetWindowParam(GLFW_OPENED) && !glfwGetKey(GLFW_KEY_ESC) && !((glfwGetKey(GLFW_KEY_LCTRL) || glfwGetKey(GLFW_KEY_RCTRL)) && (glfwGetKey('C') || glfwGetKey('W'))))
+	while (!glfwWindowShouldClose(win))
 	{
 		// update
 		{
-			int x, y;
-			glfwGetMousePos(&x, &y);
-			if (glfwGetMouseButton(GLFW_MOUSE_BUTTON_LEFT))  { rotx += y - msy; roty += x - msx; }
-			if (glfwGetMouseButton(GLFW_MOUSE_BUTTON_RIGHT)) { rotz += x - msx; rotz += y - msy; }
-			glfwGetKey('1') ? drawMode = GL_POINTS : (glfwGetKey('2') ? drawMode = GL_LINES : (glfwGetKey('3') ? drawMode = GL_TRIANGLES : 0));
+			double x, y;
+			glfwGetCursorPos(win, &x, &y);
+			if (glfwGetMouseButton(win, GLFW_MOUSE_BUTTON_LEFT))  { rotx += y - msy; roty += x - msx; }
+			if (glfwGetMouseButton(win, GLFW_MOUSE_BUTTON_RIGHT)) { rotz += x - msx; rotz += y - msy; }
+			glfwGetKey(win, '1') ? drawMode = GL_POINTS : (glfwGetKey(win, '2') ? drawMode = GL_LINES : (glfwGetKey(win, '3') ? drawMode = GL_TRIANGLES : 0));
 
 			msx = x; msy = y;
 
@@ -41,7 +41,7 @@ int main()
 			model = glm::rotate(model,        rotz, glm::vec3(0, 1, 0));
 			//model = glm::translate(model, glm::vec3(0));
 
-			glm::mat4 view = glm::lookAt(glm::vec3(0, 0, 5.5-glfwGetMouseWheel()), glm::vec3(0), glm::vec3(0, 1, 0));
+			glm::mat4 view = glm::lookAt(glm::vec3(0, 0, 1), glm::vec3(0), glm::vec3(0, 1, 0));
 
 			glm::mat4 mvp = projection * view * model;
 			glUniformMatrix4fv(mvpUniform, 1, GL_FALSE, glm::value_ptr(mvp));
@@ -53,7 +53,8 @@ int main()
 		glBindVertexArray(vao);
 		glDrawArrays(drawMode, 0, vertices.size());
 
-		glfwSwapBuffers();
+		glfwSwapBuffers(win);
+		glfwPollEvents();
 	}
 
 	cleanup();
@@ -169,10 +170,14 @@ void makePlanet(unsigned char iterations)
 void initGL()
 {
 	if (glfwInit() == GL_FALSE) { cerr << "GLFW failed to initialize\n"; cleanup(); exit(1); }
-	glfwOpenWindowHint(GLFW_OPENGL_VERSION_MAJOR, 2); glfwOpenWindowHint(GLFW_OPENGL_VERSION_MINOR, 1); glfwOpenWindowHint(GLFW_WINDOW_NO_RESIZE, GL_TRUE);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2); glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
 	//glfwOpenWindowHint(GLFW_FSAA_SAMPLES, 16);
-	if (glfwOpenWindow(800, 600, 0, 0, 0, 0, 24, 8, GLFW_WINDOW) == GL_FALSE) { cerr << "Failed to open window\n"; cleanup(); exit(1); }
-	glfwSetWindowTitle("Planet thingy");
+	win = glfwCreateWindow(800, 600, "Planet thingy", nullptr, nullptr);
+	if (!win)
+	{
+		cerr << "Failed to open window\n"; cleanup(); exit(1);
+	}
+	glfwMakeContextCurrent(win);
 
 	GLenum glewInitStatus = glewInit();
 	if (glewInitStatus != GLEW_OK) { cerr << "GLEW failed to initialize: " << glewGetErrorString(glewInitStatus) << endl; cleanup(); exit(1); }

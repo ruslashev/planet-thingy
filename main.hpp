@@ -1,9 +1,9 @@
 #include <GL/glew.h>
-#include <GL/glfw.h>
+#include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include <glm/gtx/noise.hpp>
+#include <glm/gtc/noise.hpp>
 #include <cstdio>
 #include <vector>
 #include <ctime>
@@ -50,6 +50,5 @@ void cleanup()
 	glDeleteShader(vertexShader);
 	glDeleteShader(fragmentShader);
 	
-	glfwCloseWindow();
 	glfwTerminate();
 }
