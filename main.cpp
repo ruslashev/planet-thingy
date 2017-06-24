@@ -12,58 +12,32 @@
 #include <string>
 #include <vector>
 
-struct vertex
-{
-	glm::vec3 position;
-	glm::vec3 color;
-	vertex(glm::vec3 n_position, glm::vec3 n_color)
-		: position(n_position)
-		, color(n_color)
-	{
-	}
-	vertex(glm::vec3 n_position)
-		: position(n_position)
-		, color(glm::vec3(1, 1, 1))
-	{
-	}
-	vertex(float x, float y, float z)
-		: position(glm::vec3(x, y, z))
-		, color(glm::vec3(1, 1, 1))
-	{
-	}
-};
+typedef unsigned int element;
 
 struct triangle
 {
-	vertex v1, v2, v3;
-	triangle(vertex v1, vertex v2, vertex v3)
-		: v1(v1)
-		, v2(v2)
-		, v3(v3)
-	{
-	};
-	triangle(float x1, float y1, float z1, float x2, float y2, float z2, float x3
-			, float y3, float z3)
-		: v1(x1, y1, z1)
-		, v2(x2, y2, z2)
-		, v3(x3, y3, z3)
+	element v1, v2, v3;
+	triangle(element n_v1, element n_v2, element n_v3)
+		: v1(n_v1)
+		, v2(n_v2)
+		, v3(n_v3)
 	{
 	};
 };
 
-static GLuint vbo, vao, vertexShader, fragmentShader, shaderProgram;
-static GLFWwindow *win;
-static std::vector<vertex> vertices;
-// std::vector<GLuint> indices;
+struct model
+{
+	std::vector<glm::vec3> vertices;
+	std::vector<triangle> triangles;
+};
 
-/* todo:
- * [ ] Fix nipples on 0-coordinates (e.g. (0,1,0), (1,0,0))
- * [ ] Indices
- */
+static GLuint vbo, ebo, vao, vertexShader, fragmentShader, shaderProgram;
+static GLFWwindow *win;
 
 static void cleanup()
 {
 	glDeleteBuffers(1, &vbo);
+	glDeleteBuffers(1, &ebo);
 	glDeleteVertexArrays(1, &vao);
 	glDetachShader(shaderProgram, vertexShader);
 	glDetachShader(shaderProgram, fragmentShader);
@@ -148,15 +122,12 @@ static void initGL()
 	glGenBuffers(1, &vbo);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
 
-	GLint posAttrib = glGetAttribLocation(shaderProgram, "vposition")
-		, colAttrib = glGetAttribLocation(shaderProgram, "vcolor");
+	glGenBuffers(1, &ebo);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
 
+	GLint posAttrib = glGetAttribLocation(shaderProgram, "vposition");
 	glEnableVertexAttribArray(posAttrib);
-	glEnableVertexAttribArray(colAttrib);
-	glVertexAttribPointer(posAttrib, 3, GL_FLOAT, GL_FALSE, sizeof(vertex)
-			, (void*)offsetof(vertex, position));
-	glVertexAttribPointer(colAttrib, 3, GL_FLOAT, GL_FALSE, sizeof(vertex)
-			, (void*)offsetof(vertex, color));
+	glVertexAttribPointer(posAttrib, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), 0);
 }
 
 double expOut(double a, double b, double tim)
@@ -165,103 +136,112 @@ double expOut(double a, double b, double tim)
 	return a + (b - a) * t * t;
 }
 
-void makePlanet(unsigned char iterations)
+void makePlanet(std::vector<glm::vec3> *vertices
+		, std::vector<element> *elements, int iterations)
 {
-	vertices.reserve(pow(4, iterations+1)*3);
-	std::vector<triangle> triangles;
-	triangles.reserve(pow(4, iterations+1));
+	// vertices->reserve(pow(4, iterations + 1) * 3);
+	// triangles.reserve(pow(4, iterations + 1));
+
+	model m;
 
 	const float M1S2 = 1.f/M_SQRT2;
-	triangles.emplace_back(0,  M1S2, 0,  -0.5, 0,  0.5,   0.5, 0,  0.5);
-	triangles.emplace_back(0,  M1S2, 0,   0.5, 0,  0.5,   0.5, 0, -0.5);
-	triangles.emplace_back(0,  M1S2, 0,   0.5, 0, -0.5,  -0.5, 0, -0.5);
-	triangles.emplace_back(0,  M1S2, 0,  -0.5, 0, -0.5,  -0.5, 0,  0.5);
-	triangles.emplace_back(0, -M1S2, 0,  -0.5, 0,  0.5,   0.5, 0,  0.5);
-	triangles.emplace_back(0, -M1S2, 0,   0.5, 0,  0.5,   0.5, 0, -0.5);
-	triangles.emplace_back(0, -M1S2, 0,   0.5, 0, -0.5,  -0.5, 0, -0.5);
-	triangles.emplace_back(0, -M1S2, 0,  -0.5, 0, -0.5,  -0.5, 0,  0.5);
+	m.vertices.emplace_back(   0,  M1S2,    0);
+	m.vertices.emplace_back(   0, -M1S2,    0);
+	m.vertices.emplace_back( 0.5,     0,  0.5);
+	m.vertices.emplace_back( 0.5,     0, -0.5);
+	m.vertices.emplace_back(-0.5,     0,  0.5);
+	m.vertices.emplace_back(-0.5,     0, -0.5);
 
-	for (int it = 0; it < iterations; it++)
+	m.triangles.emplace_back(0, 4, 2);
+	m.triangles.emplace_back(0, 2, 3);
+	m.triangles.emplace_back(0, 3, 5);
+	m.triangles.emplace_back(0, 5, 4);
+	m.triangles.emplace_back(1, 4, 2);
+	m.triangles.emplace_back(1, 2, 3);
+	m.triangles.emplace_back(1, 3, 5);
+	m.triangles.emplace_back(1, 5, 4);
+
+	for (int it = 0; it < iterations; ++it)
 	{
-		std::vector<triangle> new_triangles;
-		new_triangles.reserve(triangles.size() * 4);
-		for (size_t i = 0; i < triangles.size(); i++)
+		model new_model;
+		new_model.vertices = std::move(m.vertices);
+		for (size_t i = 0; i < m.triangles.size(); ++i)
 		{
 			/* rough presentation of what's going on:
-			 *
-			 *                 v1
-			 *               O
-			 *              / \
-			 *             /   \
-			 *       pos3 o     o pos1       <---  triangles[i]
-			 *           /       \
-			 *          /         \
-			 *         O-----o-----O
-			 *     v3       pos2      v2
-			 *
+			 *       v1
+			 *       O
+			 *      / \
+			 *  n3 o   o n1 <-- triangles[i]
+			 *    /     \
+			 *   O---o---O
+			 * v3   n2    v2
 			 */
 
-			// midpoints between vertices v1 v2 and v3
-			const glm::vec3 v1 = triangles[i].v1.position
-				, v2 = triangles[i].v2.position, v3 = triangles[i].v3.position
-				, pos1 = (v1 + v2) / 2.f, pos2 = (v2 + v3) / 2.f, pos3 = (v3 + v1) / 2.f;
+			// midpoints n1,... between existing vertices v1,...
+			const glm::vec3 v1 = new_model.vertices[m.triangles[i].v1]
+				, v2 = new_model.vertices[m.triangles[i].v2]
+				, v3 = new_model.vertices[m.triangles[i].v3]
+				, n1 = (v1 + v2) / 2.f, n2 = (v2 + v3) / 2.f, n3 = (v3 + v1) / 2.f;
 
-			new_triangles.emplace_back(v1, pos1, pos3);
-			new_triangles.emplace_back(pos1, v2, pos2);
-			new_triangles.emplace_back(pos3, pos2, v3);
-			new_triangles.emplace_back(pos1, pos2, pos3);
+			// new midpoints are pushed as new vertices
+			new_model.vertices.push_back(n1);
+			new_model.vertices.push_back(n2);
+			new_model.vertices.push_back(n3);
 
-			/* and in the end we have:
-			 *
-			 *     v1
-			 *        O---___
-			 *        \       -
-			 *         \     _--o pos1
-			 *          | _--   \-
-			 *     pos3  o_     | -
-			 *          |  \__  /  -
-			 *          |     \/   -
-			 *         /  __--o----O  v2
-			 *      v3 O--
-			 *                 pos2
-			 */
+			// and their indices are remembered aswell as old ones
+			const element en1 = new_model.vertices.size() - 3
+				, en2 = new_model.vertices.size() - 2
+				, en3 = new_model.vertices.size() - 1
+				, ev1 = m.triangles[i].v1
+				, ev2 = m.triangles[i].v2
+				, ev3 = m.triangles[i].v3;
+
+			// to construct new triangles
+			new_model.triangles.emplace_back(ev1, en1, en3);
+			new_model.triangles.emplace_back(en1, ev2, en2);
+			new_model.triangles.emplace_back(en3, en2, ev3);
+			new_model.triangles.emplace_back(en1, en2, en3);
 		}
 
-		triangles = std::move(new_triangles);
+		m = std::move(new_model);
 	}
 
-	for (unsigned int i = 0; i < triangles.size(); i++)
+	for (const glm::vec3 &v : m.vertices)
+		vertices->push_back(glm::normalize(v));
+
+	for (const triangle &t : m.triangles)
 	{
-		triangles[i].v1.position = glm::normalize(triangles[i].v1.position);
-		triangles[i].v2.position = glm::normalize(triangles[i].v2.position);
-		triangles[i].v3.position = glm::normalize(triangles[i].v3.position);
-		vertices.push_back(triangles[i].v1);
-		vertices.push_back(triangles[i].v2);
-		vertices.push_back(triangles[i].v3);
+		elements->push_back(t.v1);
+		elements->push_back(t.v2);
+		elements->push_back(t.v3);
 	}
 
-	for (unsigned int i = 0; i < vertices.size(); i++)
-		vertices[i].position *= expOut(0.95, 1.
-				, -glm::simplex(vertices[i].position*5.f));
-
-	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(vertex)
-			, vertices.data(), GL_STATIC_DRAW);
+	for (size_t i = 0; i < vertices->size(); ++i)
+		(*vertices)[i] *= expOut(0.95, 1., -glm::simplex((*vertices)[i] * 5.f));
 }
 
 int main()
 {
 	srand(time(NULL));
 	initGL();
-	makePlanet(5);
+	std::vector<glm::vec3> vertices;
+	std::vector<element> elements;
+	makePlanet(&vertices, &elements, 5);
+
+	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3)
+			, vertices.data(), GL_STATIC_DRAW);
+
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, elements.size() * sizeof(element)
+			, elements.data(), GL_STATIC_DRAW);
 
 	const glm::mat4 projection = glm::perspective(glm::radians(60.f)
-			, 800.f / 600.f, 1.f, 100.f);
+			, 800.f / 600.f, 0.1f, 100.f);
 	const GLint mvpUniform = glGetUniformLocation(shaderProgram, "mvp");
 
 	GLenum drawMode = GL_TRIANGLES;
 
-	const float rotationSensitivity = 0.9;
-	float oldMouseX = 0, oldMouseY = 0, rotx = 0, roty = 0, rotz = 0;
+	const float rotationSensitivity = 0.9, zoomSensitivity = 0.1;
+	float oldMouseX = 0, oldMouseY = 0, rotx = 0, roty = 0, rotz = 0, zoom = 0;
 
 	while (!glfwWindowShouldClose(win))
 	{
@@ -275,10 +255,9 @@ int main()
 				roty += (x - oldMouseX) * rotationSensitivity;
 			}
 			if (glfwGetMouseButton(win, GLFW_MOUSE_BUTTON_RIGHT))
-			{
 				rotz += (x - oldMouseX) * rotationSensitivity;
-				rotz += (y - oldMouseY) * rotationSensitivity;
-			}
+			if (glfwGetMouseButton(win, GLFW_MOUSE_BUTTON_MIDDLE))
+				zoom += (y - oldMouseY) * zoomSensitivity;
 			if (glfwGetKey(win, '1'))
 				drawMode = GL_POINTS;
 			if (glfwGetKey(win, '2'))
@@ -294,7 +273,7 @@ int main()
 			model = glm::rotate(model, glm::radians(roty), glm::vec3(0, 0, 1));
 			model = glm::rotate(model, glm::radians(rotz), glm::vec3(0, 1, 0));
 
-			glm::mat4 view = glm::lookAt(glm::vec3(0, 0, 5.5), glm::vec3(0)
+			glm::mat4 view = glm::lookAt(glm::vec3(0, 0, 5.5f + zoom), glm::vec3(0)
 					, glm::vec3(0, 1, 0));
 
 			glUniformMatrix4fv(mvpUniform, 1, GL_FALSE
@@ -303,8 +282,7 @@ int main()
 
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glUseProgram(shaderProgram);
-		glBindVertexArray(vao);
-		glDrawArrays(drawMode, 0, vertices.size());
+		glDrawElements(drawMode, elements.size(), GL_UNSIGNED_INT, 0);
 
 		glfwSwapBuffers(win);
 		glfwPollEvents();
