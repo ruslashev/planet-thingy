@@ -1,10 +1,59 @@
-#include "main.hpp"
+#include <GL/glew.h>
+#include <cstdio>
+#include <fstream>
+#include <GLFW/glfw3.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/noise.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <iostream>
+#include <sstream>
+#include <string>
+#include <vector>
 
-using namespace std;
+struct vertex
+{
+	glm::vec3 position;
+	glm::vec3 normal;
+	glm::vec3 color;
+	vertex(glm::vec3 position, glm::vec3 normal, glm::vec3 color) : position(position), normal(normal), color(color) {};
+};
+
+struct triangle
+{
+	vertex v1;
+	vertex v2;
+	vertex v3;
+	bool touched;
+	triangle(vertex v1, vertex v2, vertex v3, bool touched) : v1(v1), v2(v2), v3(v3), touched(touched) {};
+};
+
+GLuint vbo, vao, ibo, vertexShader, fragmentShader, shaderProgram;
+GLuint posAttrib, colAttrib, norAttrib;
+GLfloat rotx = 0.0f, roty = 0.0f, rotz = 0.0f;
+int msx = 0, msy = 0;
+
+void initGL();
+void makePlanet(unsigned char iterations);
+
+void loadShader(GLenum type, GLuint& shader, const char* filename);
+
+void cleanup()
+{
+	glDeleteBuffers(1, &vbo);
+	glDeleteVertexArrays(1, &vao);
+	glDetachShader(shaderProgram, vertexShader);
+	glDetachShader(shaderProgram, fragmentShader);
+	glDeleteProgram(shaderProgram);
+	glDeleteShader(vertexShader);
+	glDeleteShader(fragmentShader);
+
+	glfwTerminate();
+}
 
 static GLFWwindow *win;
-static vector<vertex> vertices;
-static vector<triangle> triangles;
+static std::vector<vertex> vertices;
+static std::vector<triangle> triangles;
 //vector<GLuint> indices;
 
 /* todo:
@@ -169,18 +218,18 @@ void makePlanet(unsigned char iterations)
 
 void initGL()
 {
-	if (glfwInit() == GL_FALSE) { cerr << "GLFW failed to initialize\n"; cleanup(); exit(1); }
+	if (glfwInit() == GL_FALSE) { std::cerr << "GLFW failed to initialize\n"; cleanup(); exit(1); }
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2); glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
 	//glfwOpenWindowHint(GLFW_FSAA_SAMPLES, 16);
 	win = glfwCreateWindow(800, 600, "Planet thingy", nullptr, nullptr);
 	if (!win)
 	{
-		cerr << "Failed to open window\n"; cleanup(); exit(1);
+		std::cerr << "Failed to open window\n"; cleanup(); exit(1);
 	}
 	glfwMakeContextCurrent(win);
 
 	GLenum glewInitStatus = glewInit();
-	if (glewInitStatus != GLEW_OK) { cerr << "GLEW failed to initialize: " << glewGetErrorString(glewInitStatus) << endl; cleanup(); exit(1); }
+	if (glewInitStatus != GLEW_OK) { std::cerr << "GLEW failed to initialize: " << glewGetErrorString(glewInitStatus) << std::endl; cleanup(); exit(1); }
 
 	glViewport(0, 0, 800, 600);
 	glEnable(GL_DEPTH_TEST);
@@ -208,14 +257,14 @@ void initGL()
 void loadShader(GLenum type, GLuint& shader, const char* filename)
 {
 	char compileLog[513];
-	ifstream fileStream (filename);
+	std::ifstream fileStream (filename);
 	if (!fileStream)
-	{ cerr << "Error loading file \"" << filename << "\"\n"; cleanup(); exit(1); }
-	stringstream ss;
+	{ std::cerr << "Error loading file \"" << filename << "\"\n"; cleanup(); exit(1); }
+	std::stringstream ss;
 	ss << fileStream.rdbuf();
 	fileStream.close();
 
-	string sourceS = ss.str();
+	std::string sourceS = ss.str();
 	const char* source = sourceS.c_str();
 
 	shader = glCreateShader(type);
@@ -224,5 +273,6 @@ void loadShader(GLenum type, GLuint& shader, const char* filename)
 
 	GLint compileSuccess;
 	glGetShaderiv(shader, GL_COMPILE_STATUS, &compileSuccess);
-	if (compileSuccess == GL_FALSE) { glGetShaderInfoLog(shader, 512, NULL, compileLog); cerr << "Shader \"" << filename << "\" failed to compile. Error log:\n" << compileLog; glDeleteShader(shader); cleanup(); exit(1); }
+	if (compileSuccess == GL_FALSE) { glGetShaderInfoLog(shader, 512, NULL, compileLog); std::cerr << "Shader \"" << filename << "\" failed to compile. Error log:\n" << compileLog; glDeleteShader(shader); cleanup(); exit(1); }
 }
+

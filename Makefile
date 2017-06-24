@@ -4,4 +4,6 @@ libraries = -lglfw -lGL -lGLEW
 default: all
 
 all:
-	g++ -Wall -o "planet thingies" main.cpp $(libraries)
+	g++ -Wall -o planet-thingy main.cpp $(libraries)
+	./planet-thingy
+
