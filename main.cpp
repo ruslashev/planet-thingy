@@ -35,32 +35,25 @@ struct vertex
 
 struct triangle
 {
-	vertex v1;
-	vertex v2;
-	vertex v3;
-	bool touched;
-	triangle(vertex v1, vertex v2, vertex v3, bool touched)
+	vertex v1, v2, v3;
+	triangle(vertex v1, vertex v2, vertex v3)
 		: v1(v1)
 		, v2(v2)
 		, v3(v3)
-		, touched(touched)
 	{
 	};
 	triangle(float x1, float y1, float z1, float x2, float y2, float z2, float x3
-			, float y3, float z3, bool n_touched = false)
+			, float y3, float z3)
 		: v1(x1, y1, z1)
 		, v2(x2, y2, z2)
 		, v3(x3, y3, z3)
-		, touched(n_touched)
 	{
 	};
 };
 
 static GLuint vbo, vao, vertexShader, fragmentShader, shaderProgram;
-static GLfloat rotx = 0.0f, roty = 0.0f, rotz = 0.0f;
 static GLFWwindow *win;
 static std::vector<vertex> vertices;
-static std::vector<triangle> triangles;
 // std::vector<GLuint> indices;
 
 /* todo:
@@ -175,6 +168,7 @@ double expOut(double a, double b, double tim)
 void makePlanet(unsigned char iterations)
 {
 	vertices.reserve(pow(4, iterations+1)*3);
+	std::vector<triangle> triangles;
 	triangles.reserve(pow(4, iterations+1));
 
 	const float M1S2 = 1.f/M_SQRT2;
@@ -189,11 +183,10 @@ void makePlanet(unsigned char iterations)
 
 	for (int it = 0; it < iterations; it++)
 	{
-		for (unsigned int i = 0; i < triangles.size(); i++)
+		std::vector<triangle> new_triangles;
+		new_triangles.reserve(triangles.size() * 4);
+		for (size_t i = 0; i < triangles.size(); i++)
 		{
-			if (triangles[i].touched)
-				continue;
-
 			/* rough presentation of what's going on:
 			 *
 			 *                 v1
@@ -209,29 +202,14 @@ void makePlanet(unsigned char iterations)
 			 */
 
 			// midpoints between vertices v1 v2 and v3
-			glm::vec3 pos1 = (triangles[i].v1.position + triangles[i].v2.position)
-				/ 2.f;
-			glm::vec3 pos2 = (triangles[i].v2.position + triangles[i].v3.position)
-				/ 2.f;
-			glm::vec3 pos3 = (triangles[i].v3.position + triangles[i].v1.position)
-				/ 2.f;
+			const glm::vec3 v1 = triangles[i].v1.position
+				, v2 = triangles[i].v2.position, v3 = triangles[i].v3.position
+				, pos1 = (v1 + v2) / 2.f, pos2 = (v2 + v3) / 2.f, pos3 = (v3 + v1) / 2.f;
 
-			// Pushing outwards (making them all the have same distance from
-			// center (0,0,0)) vertices that are already here
-			triangles[i].v1.position = glm::normalize(triangles[i].v1.position);
-			triangles[i].v2.position = glm::normalize(triangles[i].v2.position);
-			triangles[i].v3.position = glm::normalize(triangles[i].v3.position);
-
-			// same thing for new vertices
-			pos1 = glm::normalize(pos1);
-			pos2 = glm::normalize(pos2);
-			pos3 = glm::normalize(pos3);
-
-			triangles.emplace_back(triangles[i].v1.position, pos1, pos3, true);
-			triangles.emplace_back(pos1, triangles[i].v2.position, pos2, true);
-			triangles.emplace_back(pos3, pos2, triangles[i].v3.position, true);
-			// marking current big triangle as touched
-			triangles[i] = triangle(pos1, pos2, pos3, true);
+			new_triangles.emplace_back(v1, pos1, pos3);
+			new_triangles.emplace_back(pos1, v2, pos2);
+			new_triangles.emplace_back(pos3, pos2, v3);
+			new_triangles.emplace_back(pos1, pos2, pos3);
 
 			/* and in the end we have:
 			 *
@@ -249,12 +227,14 @@ void makePlanet(unsigned char iterations)
 			 */
 		}
 
-		for (unsigned int i = 0; i < triangles.size(); i++)
-			triangles[i].touched = false;
+		triangles = std::move(new_triangles);
 	}
 
 	for (unsigned int i = 0; i < triangles.size(); i++)
 	{
+		triangles[i].v1.position = glm::normalize(triangles[i].v1.position);
+		triangles[i].v2.position = glm::normalize(triangles[i].v2.position);
+		triangles[i].v3.position = glm::normalize(triangles[i].v3.position);
 		vertices.push_back(triangles[i].v1);
 		vertices.push_back(triangles[i].v2);
 		vertices.push_back(triangles[i].v3);
@@ -274,13 +254,14 @@ int main()
 	initGL();
 	makePlanet(5);
 
-	glm::mat4 projection = glm::perspective(glm::radians(60.f), 800.f / 600.f
-			, 1.f, 100.f);
-	GLint mvpUniform = glGetUniformLocation(shaderProgram, "mvp");
+	const glm::mat4 projection = glm::perspective(glm::radians(60.f)
+			, 800.f / 600.f, 1.f, 100.f);
+	const GLint mvpUniform = glGetUniformLocation(shaderProgram, "mvp");
 
 	GLenum drawMode = GL_TRIANGLES;
 
-	double oldMouseX = 0, oldMouseY = 0;
+	const float rotationSensitivity = 0.9;
+	float oldMouseX = 0, oldMouseY = 0, rotx = 0, roty = 0, rotz = 0;
 
 	while (!glfwWindowShouldClose(win))
 	{
@@ -290,13 +271,13 @@ int main()
 			glfwGetCursorPos(win, &x, &y);
 			if (glfwGetMouseButton(win, GLFW_MOUSE_BUTTON_LEFT))
 			{
-				rotx += y - oldMouseY;
-				roty += x - oldMouseX;
+				rotx += (y - oldMouseY) * rotationSensitivity;
+				roty += (x - oldMouseX) * rotationSensitivity;
 			}
 			if (glfwGetMouseButton(win, GLFW_MOUSE_BUTTON_RIGHT))
 			{
-				rotz += x - oldMouseX;
-				rotz += y - oldMouseY;
+				rotz += (x - oldMouseX) * rotationSensitivity;
+				rotz += (y - oldMouseY) * rotationSensitivity;
 			}
 			if (glfwGetKey(win, '1'))
 				drawMode = GL_POINTS;
